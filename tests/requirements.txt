@@ -1,2 +1,3 @@
 pytest-dependency
 ppk2-api
+matplotlib
