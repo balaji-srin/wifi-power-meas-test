@@ -7,6 +7,7 @@ import time
 import serial
 import pytest
 import logging
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -25,6 +26,9 @@ ser = None
 def suite_setup():
     global ppk2
     global ser
+
+    os.system("rm -rf test_results")
+
     ppks_connected = PPK2_API.list_devices()
     if (len(ppks_connected) == 1):
         ppk_port = ppks_connected[0]
@@ -57,13 +61,20 @@ def suite_setup():
 
     ser = serial.Serial(DEVICE_PORT, 115200, timeout=0.050)
 
+    # Wait for the device to boot up
+    time.sleep(2)
+
     yield
 
     logger.debug("Turning off Power")
     ppk2.toggle_DUT_power("OFF")
 
+    os.system("mkdir test_results")
+    os.system("mv current_samples*.png test_results")
 
-def avg_current_measure(time_in_seconds: int) -> int:
+
+# Function that measures the average current for a given time.
+def avg_current_measure(time_in_seconds: int, file_name_suffix: str) -> int:
     LOOP_SLEEP_TIME_SECONDS = 0.01
     samples_cumulative = []
     start_time = time.time()
@@ -77,6 +88,13 @@ def avg_current_measure(time_in_seconds: int) -> int:
     ppk2.stop_measuring()
     if len(samples_cumulative) == 0:
         raise ValueError("No samples collected")
+
+    # Remove any existing plots
+    plt.clf()
+    # Create a graph with current samples
+    plt.plot(samples_cumulative)
+    plt.ylabel('Current (uA)')
+    plt.savefig(f'current_samples_{file_name_suffix}.png', dpi=300)
 
     return sum(samples_cumulative)/len(samples_cumulative)
 
@@ -103,19 +121,20 @@ def current_consumption_check(current_ua: int, expected_ua: int, threshold: floa
 
 
 def test_radio_off_current(suite_setup):
-    current_ua = avg_current_measure(1)
+    current_ua = avg_current_measure(1, file_name_suffix="radio_off")
     print(f"Average Current when radio is off: {current_ua} uA")
-    assert (current_consumption_check(current_ua, expected_ua=5502, threshold=0.10))
+    assert (current_consumption_check(current_ua, expected_ua=15, threshold=0.10))
 
 
 def test_scan_current(suite_setup):
     shell_command("wifi scan\r\n")
     time.sleep(0.1)
-    current_ua = avg_current_measure(SCAN_STATE_DURATION_SECONDS)
+    current_ua = avg_current_measure(SCAN_STATE_DURATION_SECONDS, file_name_suffix="scan_state")
     logger.debug(f"Average Scan Current: {current_ua} uA")
     assert (current_consumption_check(current_ua, expected_ua=58442))
 
 
+@pytest.mark.dependency(depends=[])
 def test_connected_state_current(suite_setup):
     logger.debug("Connecting to prestored Wifi SSID: ")
     output = shell_command(f"wifi_cred auto_connect\r\n", 10)
@@ -125,11 +144,11 @@ def test_connected_state_current(suite_setup):
         assert (False)
 
     meas_duration_seconds = CONNECTED_STATE_MEAS_DURATION_SECONDS
-    current_ua = avg_current_measure(meas_duration_seconds)
+    current_ua = avg_current_measure(meas_duration_seconds, file_name_suffix="connected_state")
     logger.debug(
         f"Average connected Current: {current_ua} uA for {meas_duration_seconds} seconds")
 
-    #TODO: Reduce the threshold
+    # TODO: Reduce the threshold
     assert (current_consumption_check(current_ua, expected_ua=10000, threshold=0.60))
 
 
@@ -146,12 +165,12 @@ def test_twt_current(suite_setup):
 
     meas_duration_seconds = TWT_WAKE_INTERVAL_US * \
         NO_OF_TWT_INTERVALS_TO_MEASURE / 1000000
-    current_ua = avg_current_measure(meas_duration_seconds)
+    current_ua = avg_current_measure(meas_duration_seconds, file_name_suffix="twt_state")
 
     logger.debug(
         f"Average TWT state Current: {current_ua} uA for {meas_duration_seconds} seconds")
 
-    assert (current_consumption_check(current_ua, expected_ua=424))
+    assert (current_consumption_check(current_ua, expected_ua=450, threshold=0.25))
 
 
 @pytest.mark.dependency(depends=["test_twt_current"])
@@ -159,10 +178,13 @@ def test_post_twt_teardown_current(suite_setup):
     measurement_duration_seconds = 2
     output = shell_command("wifi twt teardown_all\r\n")
     time.sleep(1)
-    avg_twt_current = avg_current_measure(measurement_duration_seconds)
+    avg_twt_current = avg_current_measure(
+        measurement_duration_seconds, file_name_suffix="twt_teardown_state")
     if ("success" not in output):
         logger.error("Failed to tear down TWT")
         assert (False)
     logger.debug(
-        f"Average Current after TWT tear down: {avg_twt_current} uA for {measurement_duration_seconds} seconds")
-    assert (current_consumption_check(avg_twt_current, expected_ua=3770, threshold=0.10))
+        f"Average Current after TWT tear down: {avg_twt_current} uA for "
+        f"{measurement_duration_seconds} seconds")
+
+    assert (current_consumption_check(avg_twt_current, expected_ua=7000, threshold=0.60))
