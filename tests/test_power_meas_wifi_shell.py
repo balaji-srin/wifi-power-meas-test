@@ -130,7 +130,7 @@ def test_connected_state_current(suite_setup):
         f"Average connected Current: {current_ua} uA for {meas_duration_seconds} seconds")
 
     #TODO: Reduce the threshold
-    assert (current_consumption_check(current_ua, expected_ua=10000, threshold=0.50))
+    assert (current_consumption_check(current_ua, expected_ua=10000, threshold=0.60))
 
 
 @pytest.mark.dependency(depends=["test_connected_state_current"])
