@@ -16,6 +16,11 @@ Before running the tests in this script, ensure that the following prerequisites
 - Working python installation and all required python modules listed in `requirements.txt`.
 - WOrking NCS toolchain required to build wifi shell.
 
+## Hardware setup
+
+![ppk2_7002dk](https://github.com/balaji-nordic/wifi-power-meas-test/assets/41895435/c10a303b-b7fb-4240-b83e-898b4cd41ffa)
+
+
 ## Usage
 
 ```
