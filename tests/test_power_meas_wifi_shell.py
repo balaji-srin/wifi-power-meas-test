@@ -12,8 +12,9 @@ import matplotlib.pyplot as plt
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-PPK_PORT = "/dev/ttyACM2"
-DEVICE_PORT = "/dev/ttyACM1"
+# Get PPK Port and Device Port from environment variables
+PPK_PORT = os.environ.get('PPK_PORT')   # Com port to interact with the PPK
+DK_PORT = os.environ.get('DK_PORT')  # Com port to interact with the DK
 
 SCAN_STATE_DURATION_SECONDS = 3
 CONNECTED_STATE_MEAS_DURATION_SECONDS = 2
@@ -28,6 +29,11 @@ def suite_setup():
     global ser
 
     os.system("rm -rf test_results")
+
+    if (PPK_PORT is None):
+        raise (IOError("PPK_PORT is not set"))
+    if (DK_PORT is None):
+        raise (IOError("DK_PORT is not set"))
 
     ppks_connected = PPK2_API.list_devices()
     if (len(ppks_connected) == 1):
@@ -59,7 +65,7 @@ def suite_setup():
     logger.debug(f"Resetting {reset_cmd}")
     os.system(reset_cmd)
 
-    ser = serial.Serial(DEVICE_PORT, 115200, timeout=0.050)
+    ser = serial.Serial(DK_PORT, 115200, timeout=0.050)
 
     # Wait for the device to boot up
     time.sleep(2)
