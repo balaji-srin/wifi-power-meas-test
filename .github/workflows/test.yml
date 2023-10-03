@@ -12,7 +12,7 @@ jobs:
   test:
     runs-on: self-hosted
     container:
-      image: ghcr.io/zephyrproject-rtos/ci:v0.26.2
+      image: ghcr.io/balaji-nordic/wifi-power-meas-test:v0.0.1
       options: -v /dev/:/dev --privileged -e PPK_PORT -e DK_PORT
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
@@ -21,19 +21,6 @@ jobs:
         run: |
           rm -rf ./*
           rm -rf ./.??*
-
-      - name: Install nRF Command Line tools and JLink
-        run: |
-          apt-get update
-          apt-get install libxcb-render-util0-dev -y
-          apt-get install libxrender1 libxcb-shape0 libxcb-randr0 libxcb-icccm4 libxcb-keysyms1 libxcb-image0 libxkbcommon-x11-0 -y
-
-          wget -q https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF-command-line-tools/sw/Versions-10-x-x/10-17-0/nrf-command-line-tools-10.17.0_Linux-amd64.tar.gz
-          tar -xvf nrf-command-line-tools-10.17.0_Linux-amd64.tar.gz
-          DEBIAN_FRONTEND=noninteractive apt-get -y install ./*.deb
-          cp -r ./nrf-command-line-tools /opt
-          ln -s /opt/nrf-command-line-tools/bin/nrfjprog /usr/local/bin/nrfjprog
-          ln -s /opt/nrf-command-line-tools/bin/mergehex /usr/local/bin/mergehex
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -45,10 +32,6 @@ jobs:
         run: |
           west init -l .
           west update -o=--depth=1 -n
-
-      - name: Install python deps
-        run: |
-          pip3 install -r wifi-power-meas-test/tests/requirements.txt
 
       - name: Run tests
         working-directory: wifi-power-meas-test/tests/
