@@ -11,6 +11,9 @@ on:
 jobs:
   test:
     runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     container:
       image: ghcr.io/balaji-nordic/wifi-power-meas-test:v0.0.1
       options: -v /dev/:/dev --privileged -e PPK_PORT -e DK_PORT
