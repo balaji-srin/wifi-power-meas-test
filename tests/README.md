@@ -26,6 +26,31 @@ Before running the tests in this script, ensure that the following prerequisites
 ```
 pytest .
 ```
+## Expectaions
+
+### Radio OFF State:
+- Expected average current: 15 µA
+- Threshold: 10%
+
+### Scan State
+- Expected average current: 58,442 µA
+- Threshold: N/A
+
+### Connected State
+- Expected average current: 10,000 µA
+- Threshold: 60%
+
+### TWT Stage 
+TWT_WAKE_DURATION_US: 8192 microseconds
+TWT_WAKE_INTERVAL_US: 2 seconds
+
+- Expected average current: 450 µA
+- Threshold: 25%
+
+### Post TWT stage (Connected):
+
+- Expected average current: 7,000 µA
+- Threshold: 60%
 
 ## Results
 
